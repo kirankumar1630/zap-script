@@ -16,15 +16,27 @@ import_response=$(curl -s -G "${ZAP_HOST}/JSON/openapi/action/importUrl/" \
   --data-urlencode "url=${OPENAPI_URL}" \
   --data-urlencode "apikey=${ZAP_API_KEY}")
 
+# Check if the import response is valid (e.g., JSON format, no errors)
+if [[ $(echo "$import_response" | jq -r '.error') != "null" ]]; then
+  echo "Error: Failed to import OpenAPI definition. Response: $import_response"
+  exit 1
+fi
+
 # Generate JSON report
 report=$(curl -s -G "${ZAP_HOST}/OTHER/core/other/jsonreport/" \
   --data-urlencode "apikey=${ZAP_API_KEY}")
 
-# Modify field names in the report
+# Check if the report is valid JSON
+if ! echo "$report" | jq empty >/dev/null 2>&1; then
+  echo "Error: Invalid JSON received from ZAP report."
+  exit 1
+fi
+
+# Modify field names in the report (remove leading '@' from keys)
 formatted_report=$(echo "$report" | jq 'with_entries(if .key[0:1] == "@" then .key |= .[1:] else . end)')
+
 # Rename the "generated" field to "createdAt"
 formatted_report=$(echo "$formatted_report" | jq 'if has("generated") then .createdAt = .generated | del(.generated) else . end')
-
 
 # Function to add a random "id" field to JSON
 add_id_to_json() {
@@ -39,6 +51,8 @@ add_id_to_json() {
   echo "$updated_json"
 }
 
+# Add random ID to the formatted report
 updated_json=$(add_id_to_json "$formatted_report")
 
+# Output the final JSON with the added ID
 echo "$updated_json"
