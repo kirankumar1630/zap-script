@@ -16,7 +16,10 @@ import_response=$(curl -s -G "${ZAP_HOST}/JSON/openapi/action/importUrl/" \
   --data-urlencode "url=${OPENAPI_URL}" \
   --data-urlencode "apikey=${ZAP_API_KEY}")
 
-# Check if the import response is valid (e.g., JSON format, no errors)
+# Log the response from the import action
+echo "Import Response: $import_response"  # Added log for debugging
+
+# Check for error in the import response
 if [[ $(echo "$import_response" | jq -r '.error') != "null" ]]; then
   echo "Error: Failed to import OpenAPI definition. Response: $import_response"
   exit 1
