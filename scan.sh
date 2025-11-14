@@ -16,15 +16,21 @@ import_response=$(curl -s -G "${ZAP_HOST}/JSON/openapi/action/importUrl/" \
   --data-urlencode "url=${OPENAPI_URL}" \
   --data-urlencode "apikey=${ZAP_API_KEY}")
 
+# Log the import response to debug
+echo "Import Response: $import_response"
+
 # Generate JSON report
 report=$(curl -s -G "${ZAP_HOST}/OTHER/core/other/jsonreport/" \
   --data-urlencode "apikey=${ZAP_API_KEY}")
 
+# Log the report to debug
+echo "Report: $report"
+
 # Modify field names in the report
 formatted_report=$(echo "$report" | jq 'with_entries(if .key[0:1] == "@" then .key |= .[1:] else . end)')
+
 # Rename the "generated" field to "createdAt"
 formatted_report=$(echo "$formatted_report" | jq 'if has("generated") then .createdAt = .generated | del(.generated) else . end')
-
 
 # Function to add a random "id" field to JSON
 add_id_to_json() {
